@@ -44,7 +44,13 @@ def cadastrar_usuario():
         cur.close()
         conn.close()
         
-        usuario = Usuario.from_tuple(usuario_data)
+        usuario = Usuario(
+            id=usuario_data[0],
+            email=usuario_data[1],
+            perfil=usuario_data[2],
+            ativo=usuario_data[3],
+            excluido=usuario_data[4]
+        )
         
         return jsonify({
             'sucesso': True,

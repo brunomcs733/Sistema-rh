@@ -83,3 +83,36 @@ def cadastrar_candidato():
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
     
+def listar_candidatos():
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        cur.execute("""
+            SELECT id, nome, cpf, email, telefone, ativo, usuario_id
+            FROM candidato 
+            WHERE excluido = false
+            ORDER BY nome
+        """)
+        
+        candidatos = cur.fetchall()
+        cur.close()
+        conn.close()
+        
+        resultado = []
+        for c in candidatos:
+            resultado.append({
+                'id': c[0],
+                'nome': c[1],
+                'cpf': c[2],
+                'email': c[3],
+                'telefone': c[4],
+                'ativo': c[5],
+                'usuario_id': c[6]
+            })
+        
+        return jsonify(resultado), 200
+        
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+    

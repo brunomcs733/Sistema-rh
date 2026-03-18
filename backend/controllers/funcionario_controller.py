@@ -75,3 +75,39 @@ def cadastrar_funcionario():
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
     
+
+def listar_funcionarios():
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        cur.execute("""
+            SELECT id, nome, cpf, cargo, data_admissao, ativo, cliente_id, usuario_id
+            FROM funcionario 
+            WHERE excluido = false AND ativo = true
+            ORDER BY nome
+        """)
+        
+        funcionarios = cur.fetchall()
+        cur.close()
+        conn.close()
+        
+        resultado = []
+        for f in funcionarios:
+            resultado.append({
+                'id': f[0],
+                'nome': f[1],
+                'cpf': f[2],
+                'cargo': f[3],
+                'data_admissao': str(f[4]) if f[4] else None,
+                'ativo': f[5],
+                'cliente_id': f[6],
+                'usuario_id': f[7]
+            })
+        
+        return jsonify(resultado), 200
+        
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+    
+    

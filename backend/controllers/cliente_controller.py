@@ -82,3 +82,35 @@ def cadastrar_cliente():
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
     
+def listar_clientes():
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        cur.execute("""
+            SELECT id, cnpj, razao_social, nome_fantasia, contato 
+            FROM cliente 
+            WHERE excluido = false
+            ORDER BY razao_social
+        """)
+        
+        clientes = cur.fetchall()
+        cur.close()
+        conn.close()
+        
+        # Converter para lista de dicionários
+        resultado = []
+        for c in clientes:
+            resultado.append({
+                'id': c[0],
+                'cnpj': c[1],
+                'razao_social': c[2],
+                'nome_fantasia': c[3],
+                'contato': c[4]
+            })
+        
+        return jsonify(resultado), 200
+        
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+        

@@ -69,3 +69,39 @@ def cadastrar_vaga():
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
     
+def listar_vagas():
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        cur.execute("""
+            SELECT id, titulo, descricao, requisitos, salario, 
+                   data_abertura, data_encerramento, ativa, cliente_id
+            FROM vaga 
+            WHERE excluido = false AND ativa = true
+            ORDER BY data_abertura DESC
+        """)
+        
+        vagas = cur.fetchall()
+        cur.close()
+        conn.close()
+        
+        resultado = []
+        for v in vagas:
+            resultado.append({
+                'id': v[0],
+                'titulo': v[1],
+                'descricao': v[2],
+                'requisitos': v[3],
+                'salario': float(v[4]) if v[4] else None,
+                'data_abertura': str(v[5]) if v[5] else None,
+                'data_encerramento': str(v[6]) if v[6] else None,
+                'ativa': v[7],
+                'cliente_id': v[8]
+            })
+        
+        return jsonify(resultado), 200
+        
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+    
