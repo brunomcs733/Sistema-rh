@@ -3,6 +3,8 @@ import psycopg2
 from database.connection import get_connection
 from models.vaga import Vaga
 
+
+# ==================== FUNÇÃO CADASTRAR ====================
 def cadastrar_vaga():
     try:
         dados = request.get_json()
@@ -68,7 +70,9 @@ def cadastrar_vaga():
         return jsonify({'erro': f'Erro de integridade: {str(e)}'}), 400
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
-    
+
+
+# ==================== FUNÇÃO LISTAR TODOS ====================
 def listar_vagas():
     try:
         conn = get_connection()
@@ -101,6 +105,99 @@ def listar_vagas():
             })
         
         return jsonify(resultado), 200
+        
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+
+# ==================== FUNÇÃO BUSCAR POR ID ====================
+def buscar_vaga(id):
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        cur.execute("""
+            SELECT id, titulo, descricao, requisitos, salario, 
+                   data_abertura, data_encerramento, ativa, cliente_id
+            FROM vaga 
+            WHERE id = %s AND excluido = false
+        """, (id,))
+        
+        vaga = cur.fetchone()
+        cur.close()
+        conn.close()
+        
+        if not vaga:
+            return jsonify({'erro': 'Vaga não encontrada'}), 404
+        
+        return jsonify({
+            'id': vaga[0],
+            'titulo': vaga[1],
+            'descricao': vaga[2],
+            'requisitos': vaga[3],
+            'salario': float(vaga[4]) if vaga[4] else None,
+            'data_abertura': str(vaga[5]) if vaga[5] else None,
+            'data_encerramento': str(vaga[6]) if vaga[6] else None,
+            'ativa': vaga[7],
+            'cliente_id': vaga[8]
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+
+# ==================== FUNÇÃO EDITAR ====================
+def editar_vaga(id):
+    try:
+        dados = request.get_json()
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        # Verificar se a vaga existe
+        cur.execute("SELECT id FROM vaga WHERE id = %s AND excluido = false", (id,))
+        if not cur.fetchone():
+            return jsonify({'erro': 'Vaga não encontrada'}), 404
+        
+        # Atualizar campos
+        campos = []
+        valores = []
+        
+        if 'titulo' in dados:
+            campos.append("titulo = %s")
+            valores.append(dados['titulo'])
+        if 'descricao' in dados:
+            campos.append("descricao = %s")
+            valores.append(dados['descricao'])
+        if 'requisitos' in dados:
+            campos.append("requisitos = %s")
+            valores.append(dados['requisitos'])
+        if 'salario' in dados:
+            campos.append("salario = %s")
+            valores.append(dados['salario'])
+        if 'data_encerramento' in dados:
+            campos.append("data_encerramento = %s")
+            valores.append(dados['data_encerramento'])
+        if 'ativa' in dados:
+            campos.append("ativa = %s")
+            valores.append(dados['ativa'])
+        if 'cliente_id' in dados:
+            campos.append("cliente_id = %s")
+            valores.append(dados['cliente_id'])
+        
+        if campos:
+            campos.append("data_alteracao = now()")
+            valores.append(id)
+            query = f"UPDATE vaga SET {', '.join(campos)} WHERE id = %s"
+            cur.execute(query, valores)
+            conn.commit()
+        
+        cur.close()
+        conn.close()
+        
+        return jsonify({
+            'sucesso': True,
+            'mensagem': 'Vaga atualizada com sucesso!'
+        }), 200
         
     except Exception as e:
         return jsonify({'erro': str(e)}), 500

@@ -4,6 +4,8 @@ import base64
 from database.connection import get_connection
 from models.endereco import Endereco
 
+
+# ==================== FUNÇÃO SOLICITAR ALTERAÇÃO ====================
 def solicitar_alteracao_endereco():
     try:
         dados = request.get_json()
@@ -88,6 +90,127 @@ def solicitar_alteracao_endereco():
         if 'foreign key' in str(e) and 'funcionario_id' in str(e):
             return jsonify({'erro': 'Funcionário não encontrado'}), 400
         return jsonify({'erro': f'Erro de integridade: {str(e)}'}), 400
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+
+# ==================== FUNÇÃO LISTAR TODOS ====================
+def listar_enderecos():
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        cur.execute("""
+            SELECT id, logradouro, numero, complemento, bairro, cidade, estado, cep,
+                   status, funcionario_id, data_solicitacao
+            FROM endereco 
+            ORDER BY data_solicitacao DESC
+        """)
+        
+        enderecos = cur.fetchall()
+        cur.close()
+        conn.close()
+        
+        resultado = []
+        for e in enderecos:
+            resultado.append({
+                'id': e[0],
+                'logradouro': e[1],
+                'numero': e[2],
+                'complemento': e[3],
+                'bairro': e[4],
+                'cidade': e[5],
+                'estado': e[6],
+                'cep': e[7],
+                'status': e[8],
+                'funcionario_id': e[9],
+                'data_solicitacao': str(e[10]) if e[10] else None
+            })
+        
+        return jsonify(resultado), 200
+        
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+
+# ==================== FUNÇÃO BUSCAR POR ID ====================
+def buscar_endereco(id):
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        cur.execute("""
+            SELECT id, logradouro, numero, complemento, bairro, cidade, estado, cep,
+                   status, funcionario_id, data_solicitacao, data_aprovacao, motivo_rejeicao
+            FROM endereco 
+            WHERE id = %s
+        """, (id,))
+        
+        endereco = cur.fetchone()
+        cur.close()
+        conn.close()
+        
+        if not endereco:
+            return jsonify({'erro': 'Endereço não encontrado'}), 404
+        
+        return jsonify({
+            'id': endereco[0],
+            'logradouro': endereco[1],
+            'numero': endereco[2],
+            'complemento': endereco[3],
+            'bairro': endereco[4],
+            'cidade': endereco[5],
+            'estado': endereco[6],
+            'cep': endereco[7],
+            'status': endereco[8],
+            'funcionario_id': endereco[9],
+            'data_solicitacao': str(endereco[10]) if endereco[10] else None,
+            'data_aprovacao': str(endereco[11]) if endereco[11] else None,
+            'motivo_rejeicao': endereco[12]
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+
+# ==================== FUNÇÃO EDITAR ====================
+def editar_endereco(id):
+    try:
+        dados = request.get_json()
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        # Verificar se o endereço existe
+        cur.execute("SELECT id FROM endereco WHERE id = %s", (id,))
+        if not cur.fetchone():
+            return jsonify({'erro': 'Endereço não encontrado'}), 404
+        
+        # Atualizar campos permitidos (status e motivo_rejeicao)
+        campos = []
+        valores = []
+        
+        if 'status' in dados:
+            campos.append("status = %s")
+            valores.append(dados['status'])
+        if 'motivo_rejeicao' in dados:
+            campos.append("motivo_rejeicao = %s")
+            valores.append(dados['motivo_rejeicao'])
+        
+        if campos:
+            campos.append("data_alteracao = now()")
+            valores.append(id)
+            query = f"UPDATE endereco SET {', '.join(campos)} WHERE id = %s"
+            cur.execute(query, valores)
+            conn.commit()
+        
+        cur.close()
+        conn.close()
+        
+        return jsonify({
+            'sucesso': True,
+            'mensagem': 'Endereço atualizado com sucesso!'
+        }), 200
+        
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
     

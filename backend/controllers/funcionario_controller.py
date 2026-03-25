@@ -3,6 +3,8 @@ import psycopg2
 from database.connection import get_connection
 from models.funcionario import Funcionario
 
+
+# ==================== FUNÇÃO CADASTRAR ====================
 def cadastrar_funcionario():
     try:
         dados = request.get_json()
@@ -74,8 +76,9 @@ def cadastrar_funcionario():
         return jsonify({'erro': f'Erro de integridade: {str(e)}'}), 400
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
-    
 
+
+# ==================== FUNÇÃO LISTAR TODOS ====================
 def listar_funcionarios():
     try:
         conn = get_connection()
@@ -109,5 +112,92 @@ def listar_funcionarios():
         
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
-    
-    
+
+
+# ==================== FUNÇÃO BUSCAR POR ID ====================
+def buscar_funcionario(id):
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        cur.execute("""
+            SELECT id, nome, cpf, cargo, data_admissao, ativo, cliente_id, usuario_id
+            FROM funcionario 
+            WHERE id = %s AND excluido = false
+        """, (id,))
+        
+        funcionario = cur.fetchone()
+        cur.close()
+        conn.close()
+        
+        if not funcionario:
+            return jsonify({'erro': 'Funcionário não encontrado'}), 404
+        
+        return jsonify({
+            'id': funcionario[0],
+            'nome': funcionario[1],
+            'cpf': funcionario[2],
+            'cargo': funcionario[3],
+            'data_admissao': str(funcionario[4]) if funcionario[4] else None,
+            'ativo': funcionario[5],
+            'cliente_id': funcionario[6],
+            'usuario_id': funcionario[7]
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+
+# ==================== FUNÇÃO EDITAR ====================
+def editar_funcionario(id):
+    try:
+        dados = request.get_json()
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        # Verificar se o funcionário existe
+        cur.execute("SELECT id FROM funcionario WHERE id = %s AND excluido = false", (id,))
+        if not cur.fetchone():
+            return jsonify({'erro': 'Funcionário não encontrado'}), 404
+        
+        # Atualizar campos
+        campos = []
+        valores = []
+        
+        if 'nome' in dados:
+            campos.append("nome = %s")
+            valores.append(dados['nome'])
+        if 'cpf' in dados:
+            campos.append("cpf = %s")
+            valores.append(dados['cpf'])
+        if 'cargo' in dados:
+            campos.append("cargo = %s")
+            valores.append(dados['cargo'])
+        if 'data_admissao' in dados:
+            campos.append("data_admissao = %s")
+            valores.append(dados['data_admissao'])
+        if 'cliente_id' in dados:
+            campos.append("cliente_id = %s")
+            valores.append(dados['cliente_id'])
+        if 'usuario_id' in dados:
+            campos.append("usuario_id = %s")
+            valores.append(dados['usuario_id'])
+        
+        if campos:
+            campos.append("data_alteracao = now()")
+            valores.append(id)
+            query = f"UPDATE funcionario SET {', '.join(campos)} WHERE id = %s"
+            cur.execute(query, valores)
+            conn.commit()
+        
+        cur.close()
+        conn.close()
+        
+        return jsonify({
+            'sucesso': True,
+            'mensagem': 'Funcionário atualizado com sucesso!'
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+

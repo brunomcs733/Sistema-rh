@@ -4,6 +4,8 @@ import base64
 from database.connection import get_connection
 from models.candidato import Candidato
 
+
+# ==================== FUNÇÃO CADASTRAR ====================
 def cadastrar_candidato():
     try:
         dados = request.get_json()
@@ -82,7 +84,9 @@ def cadastrar_candidato():
         return jsonify({'erro': f'Erro de integridade: {str(e)}'}), 400
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
-    
+
+
+# ==================== FUNÇÃO LISTAR TODOS ====================
 def listar_candidatos():
     try:
         conn = get_connection()
@@ -115,4 +119,85 @@ def listar_candidatos():
         
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
-    
+
+
+# ==================== FUNÇÃO BUSCAR POR ID ====================
+def buscar_candidato(id):
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        cur.execute("""
+            SELECT id, nome, cpf, email, telefone, ativo, usuario_id
+            FROM candidato 
+            WHERE id = %s AND excluido = false
+        """, (id,))
+        
+        candidato = cur.fetchone()
+        cur.close()
+        conn.close()
+        
+        if not candidato:
+            return jsonify({'erro': 'Candidato não encontrado'}), 404
+        
+        return jsonify({
+            'id': candidato[0],
+            'nome': candidato[1],
+            'cpf': candidato[2],
+            'email': candidato[3],
+            'telefone': candidato[4],
+            'ativo': candidato[5],
+            'usuario_id': candidato[6]
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+
+# ==================== FUNÇÃO EDITAR ====================
+def editar_candidato(id):
+    try:
+        dados = request.get_json()
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        # Verificar se o candidato existe
+        cur.execute("SELECT id FROM candidato WHERE id = %s AND excluido = false", (id,))
+        if not cur.fetchone():
+            return jsonify({'erro': 'Candidato não encontrado'}), 404
+        
+        # Atualizar campos permitidos
+        campos = []
+        valores = []
+        
+        if 'nome' in dados:
+            campos.append("nome = %s")
+            valores.append(dados['nome'])
+        if 'cpf' in dados:
+            campos.append("cpf = %s")
+            valores.append(dados['cpf'])
+        if 'email' in dados:
+            campos.append("email = %s")
+            valores.append(dados['email'])
+        if 'telefone' in dados:
+            campos.append("telefone = %s")
+            valores.append(dados['telefone'])
+        
+        if campos:
+            campos.append("data_alteracao = now()")
+            valores.append(id)
+            query = f"UPDATE candidato SET {', '.join(campos)} WHERE id = %s"
+            cur.execute(query, valores)
+            conn.commit()
+        
+        cur.close()
+        conn.close()
+        
+        return jsonify({
+            'sucesso': True,
+            'mensagem': 'Candidato atualizado com sucesso!'
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+

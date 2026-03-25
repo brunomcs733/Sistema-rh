@@ -3,6 +3,8 @@ import psycopg2
 from database.connection import get_connection
 from models.cliente import Cliente
 
+
+# ==================== FUNÇÃO CADASTRAR ====================
 def cadastrar_cliente():
     try:
         dados = request.get_json()
@@ -81,14 +83,16 @@ def cadastrar_cliente():
         return jsonify({'erro': f'Erro de integridade: {str(e)}'}), 400
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
-    
+
+
+# ==================== FUNÇÃO LISTAR TODOS ====================
 def listar_clientes():
     try:
         conn = get_connection()
         cur = conn.cursor()
         
         cur.execute("""
-            SELECT id, cnpj, razao_social, nome_fantasia, contato 
+            SELECT id, cnpj, razao_social, nome_fantasia, contato, ativo
             FROM cliente 
             WHERE excluido = false
             ORDER BY razao_social
@@ -106,11 +110,96 @@ def listar_clientes():
                 'cnpj': c[1],
                 'razao_social': c[2],
                 'nome_fantasia': c[3],
-                'contato': c[4]
+                'contato': c[4],
+                'ativo': c[5]
             })
         
         return jsonify(resultado), 200
         
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
+
+
+# ==================== FUNÇÃO BUSCAR POR ID ====================
+def buscar_cliente(id):
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
         
+        cur.execute("""
+            SELECT id, cnpj, razao_social, nome_fantasia, contato, ativo, usuario_id
+            FROM cliente 
+            WHERE id = %s AND excluido = false
+        """, (id,))
+        
+        cliente = cur.fetchone()
+        cur.close()
+        conn.close()
+        
+        if not cliente:
+            return jsonify({'erro': 'Cliente não encontrado'}), 404
+        
+        return jsonify({
+            'id': cliente[0],
+            'cnpj': cliente[1],
+            'razao_social': cliente[2],
+            'nome_fantasia': cliente[3],
+            'contato': cliente[4],
+            'ativo': cliente[5],
+            'usuario_id': cliente[6]
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+
+# ==================== FUNÇÃO EDITAR ====================
+def editar_cliente(id):
+    try:
+        dados = request.get_json()
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        # Verificar se o cliente existe
+        cur.execute("SELECT id FROM cliente WHERE id = %s AND excluido = false", (id,))
+        if not cur.fetchone():
+            return jsonify({'erro': 'Cliente não encontrado'}), 404
+        
+        # Atualizar campos permitidos
+        campos = []
+        valores = []
+        
+        if 'cnpj' in dados:
+            campos.append("cnpj = %s")
+            valores.append(dados['cnpj'])
+        if 'razao_social' in dados:
+            campos.append("razao_social = %s")
+            valores.append(dados['razao_social'])
+        if 'nome_fantasia' in dados:
+            campos.append("nome_fantasia = %s")
+            valores.append(dados['nome_fantasia'])
+        if 'contato' in dados:
+            campos.append("contato = %s")
+            valores.append(dados['contato'])
+        if 'usuario_id' in dados:
+            campos.append("usuario_id = %s")
+            valores.append(dados['usuario_id'])
+        
+        if campos:
+            campos.append("data_alteracao = now()")
+            valores.append(id)
+            query = f"UPDATE cliente SET {', '.join(campos)} WHERE id = %s"
+            cur.execute(query, valores)
+            conn.commit()
+        
+        cur.close()
+        conn.close()
+        
+        return jsonify({
+            'sucesso': True,
+            'mensagem': 'Cliente atualizado com sucesso!'
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+    
