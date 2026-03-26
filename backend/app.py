@@ -95,6 +95,7 @@ def buscar_candidato_route(id):
 
 @app.route('/api/candidaturas/<int:id>', methods=['GET'])
 def buscar_candidatura_route(id):
+    from controllers.candidatura_controller import buscar_candidatura
     return buscar_candidatura(id)
 
 @app.route('/api/enderecos/<int:id>', methods=['GET'])

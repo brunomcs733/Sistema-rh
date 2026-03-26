@@ -67,25 +67,42 @@ def listar_candidaturas():
         cur = conn.cursor()
         
         cur.execute("""
-            SELECT id, data_candidatura, status, vaga_id, candidato_id
-            FROM candidatura 
-            WHERE excluido = false
-            ORDER BY data_candidatura DESC
+            SELECT 
+                cand.id,
+                cand.data_candidatura,
+                cand.status,
+                cand.vaga_id,
+                v.titulo,
+                cand.candidato_id,
+                c.nome,
+                cl.razao_social
+            FROM candidatura cand
+            INNER JOIN vaga v ON v.id = cand.vaga_id
+            INNER JOIN candidato c ON c.id = cand.candidato_id
+            INNER JOIN cliente cl ON cl.id = v.cliente_id
+            WHERE cand.excluido = false
+            ORDER BY cand.data_candidatura DESC
         """)
         
         candidaturas = cur.fetchall()
         cur.close()
         conn.close()
         
+        from models.candidatura_lista import CandidaturaLista
+        
         resultado = []
         for c in candidaturas:
-            resultado.append({
-                'id': c[0],
-                'data_candidatura': str(c[1]) if c[1] else None,
-                'status': c[2],
-                'vaga_id': c[3],
-                'candidato_id': c[4]
-            })
+            candidatura_lista = CandidaturaLista(
+                id=c[0],
+                data_candidatura=c[1],
+                status=c[2],
+                vaga_id=c[3],
+                titulo=c[4],
+                candidato_id=c[5],
+                nome=c[6],
+                razao_social=c[7]
+            )
+            resultado.append(candidatura_lista.to_dict())
         
         return jsonify(resultado), 200
         
