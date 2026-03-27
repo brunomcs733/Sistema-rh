@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from dotenv import load_dotenv
 
@@ -39,6 +39,29 @@ from controllers.candidato_controller import editar_candidato
 from controllers.candidatura_controller import editar_candidatura
 from controllers.endereco_controller import editar_endereco
 
+# ==================== IMPORTS EXCLUSÃO (DELETE) ====================
+from controllers.auth_controller import excluir_usuario
+from controllers.cliente_controller import excluir_cliente
+from controllers.funcionario_controller import excluir_funcionario
+from controllers.vaga_controller import excluir_vaga
+from controllers.candidato_controller import excluir_candidato
+from controllers.candidatura_controller import excluir_candidatura
+from controllers.endereco_controller import excluir_endereco
+
+# ==================== IMPORTS ATIVAÇÃO/DESATIVAÇÃO (PATCH) ====================
+from controllers.auth_controller import alternar_status_usuario
+from controllers.cliente_controller import alternar_status_cliente
+from controllers.funcionario_controller import alternar_status_funcionario
+from controllers.vaga_controller import alternar_status_vaga
+from controllers.candidato_controller import alternar_status_candidato
+from controllers.candidatura_controller import alternar_status_candidatura
+from controllers.endereco_controller import alternar_status_endereco
+
+# ==================== IMPORTS LOGIN ====================
+from controllers.auth_controller import login
+
+# ==================== IMPORTS MIDDLEWARE ====================
+from middlewares.auth_middleware import token_required, perfil_required
 
 load_dotenv()
 
@@ -95,7 +118,6 @@ def buscar_candidato_route(id):
 
 @app.route('/api/candidaturas/<int:id>', methods=['GET'])
 def buscar_candidatura_route(id):
-    from controllers.candidatura_controller import buscar_candidatura
     return buscar_candidatura(id)
 
 @app.route('/api/enderecos/<int:id>', methods=['GET'])
@@ -131,6 +153,94 @@ def editar_candidatura_route(id):
 @app.route('/api/enderecos/<int:id>', methods=['PUT'])
 def editar_endereco_route(id):
     return editar_endereco(id)
+
+
+# ==================== ROTAS DE EXCLUSÃO (DELETE) ====================
+@app.route('/api/usuarios/<int:id>', methods=['DELETE'])
+def excluir_usuario_route(id):
+    return excluir_usuario(id)
+
+@app.route('/api/clientes/<int:id>', methods=['DELETE'])
+def excluir_cliente_route(id):
+    return excluir_cliente(id)
+
+@app.route('/api/funcionarios/<int:id>', methods=['DELETE'])
+def excluir_funcionario_route(id):
+    return excluir_funcionario(id)
+
+@app.route('/api/vagas/<int:id>', methods=['DELETE'])
+def excluir_vaga_route(id):
+    return excluir_vaga(id)
+
+@app.route('/api/candidatos/<int:id>', methods=['DELETE'])
+def excluir_candidato_route(id):
+    return excluir_candidato(id)
+
+@app.route('/api/candidaturas/<int:id>', methods=['DELETE'])
+def excluir_candidatura_route(id):
+    return excluir_candidatura(id)
+
+@app.route('/api/enderecos/<int:id>', methods=['DELETE'])
+def excluir_endereco_route(id):
+    return excluir_endereco(id)
+
+
+# ==================== ROTAS DE ATIVAÇÃO/DESATIVAÇÃO (PATCH) ====================
+@app.route('/api/usuarios/<int:id>/status', methods=['PATCH'])
+def alternar_status_usuario_route(id):
+    return alternar_status_usuario(id)
+
+@app.route('/api/clientes/<int:id>/status', methods=['PATCH'])
+def alternar_status_cliente_route(id):
+    return alternar_status_cliente(id)
+
+@app.route('/api/funcionarios/<int:id>/status', methods=['PATCH'])
+def alternar_status_funcionario_route(id):
+    return alternar_status_funcionario(id)
+
+@app.route('/api/vagas/<int:id>/status', methods=['PATCH'])
+def alternar_status_vaga_route(id):
+    return alternar_status_vaga(id)
+
+@app.route('/api/candidatos/<int:id>/status', methods=['PATCH'])
+def alternar_status_candidato_route(id):
+    return alternar_status_candidato(id)
+
+@app.route('/api/candidaturas/<int:id>/status', methods=['PATCH'])
+def alternar_status_candidatura_route(id):
+    return alternar_status_candidatura(id)
+
+@app.route('/api/enderecos/<int:id>/status', methods=['PATCH'])
+def alternar_status_endereco_route(id):
+    return alternar_status_endereco(id)
+
+# ==================== ROTAS PROTEGIDAS ====================
+@app.route('/api/perfil', methods=['GET'])
+@token_required
+def meu_perfil():
+    """
+    Rota protegida que retorna os dados do usuário autenticado.
+    """
+    return jsonify({
+        'usuario': request.usuario
+    }), 200
+
+
+@app.route('/api/admin', methods=['GET'])
+@token_required
+@perfil_required(['rh'])
+def area_admin():
+    """
+    Rota que só pode ser acessada por usuários com perfil 'rh'.
+    """
+    return jsonify({
+        'mensagem': 'Bem-vindo à área administrativa!',
+        'usuario': request.usuario
+    }), 200
+
+
+# ==================== ROTA DE LOGIN (POST) ====================
+app.route('/api/login', methods=['POST'])(login)
 
 
 if __name__ == '__main__':

@@ -214,3 +214,74 @@ def editar_endereco(id):
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
     
+# ==================== FUNÇÃO EXCLUIR ====================
+def excluir_endereco(id):
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        # Verificar se a solicitação existe
+        cur.execute("SELECT id FROM endereco WHERE id = %s", (id,))
+        if not cur.fetchone():
+            return jsonify({'erro': 'Solicitação não encontrada'}), 404
+        
+        # Exclusão lógica (marcar como excluído)
+        cur.execute("""
+            UPDATE endereco 
+            SET excluido = true, data_alteracao = now() 
+            WHERE id = %s
+        """, (id,))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        return jsonify({
+            'sucesso': True,
+            'mensagem': 'Solicitação excluída com sucesso!'
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+    
+# ==================== FUNÇÃO ATIVAR/DESATIVAR ====================
+def alternar_status_endereco(id):
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        # Verificar se o endereço existe
+        cur.execute("SELECT id, status FROM endereco WHERE id = %s", (id,))
+        endereco = cur.fetchone()
+        if not endereco:
+            return jsonify({'erro': 'Solicitação não encontrada'}), 404
+        
+        # Alternar status entre pendente e aprovado
+        status_atual = endereco[1]
+        if status_atual == 'pendente':
+            novo_status = 'aprovado'
+        elif status_atual == 'aprovado':
+            novo_status = 'pendente'
+        else:
+            return jsonify({'erro': 'Não é possível alternar status de solicitação rejeitada'}), 400
+        
+        cur.execute("""
+            UPDATE endereco 
+            SET status = %s, data_alteracao = now() 
+            WHERE id = %s
+        """, (novo_status, id))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        return jsonify({
+            'sucesso': True,
+            'mensagem': f'Status da solicitação alterado para {novo_status}!',
+            'status': novo_status
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+    
+    

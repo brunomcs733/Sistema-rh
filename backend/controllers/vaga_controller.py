@@ -202,3 +202,67 @@ def editar_vaga(id):
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
     
+# ==================== FUNÇÃO EXCLUIR ====================
+def excluir_vaga(id):
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        # Verificar se a vaga existe e não está excluída
+        cur.execute("SELECT id FROM vaga WHERE id = %s AND excluido = false", (id,))
+        if not cur.fetchone():
+            return jsonify({'erro': 'Vaga não encontrada'}), 404
+        
+        # Exclusão lógica (marcar como excluído)
+        cur.execute("""
+            UPDATE vaga 
+            SET excluido = true, data_alteracao = now() 
+            WHERE id = %s
+        """, (id,))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        return jsonify({
+            'sucesso': True,
+            'mensagem': 'Vaga excluída com sucesso!'
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+    
+# ==================== FUNÇÃO ATIVAR/DESATIVAR ====================
+def alternar_status_vaga(id):
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        # Verificar se a vaga existe e não está excluída
+        cur.execute("SELECT id, ativa FROM vaga WHERE id = %s AND excluido = false", (id,))
+        vaga = cur.fetchone()
+        if not vaga:
+            return jsonify({'erro': 'Vaga não encontrada'}), 404
+        
+        # Alternar status (ativa = ativo)
+        novo_status = not vaga[1]
+        cur.execute("""
+            UPDATE vaga 
+            SET ativa = %s, data_alteracao = now() 
+            WHERE id = %s
+        """, (novo_status, id))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        status_texto = 'ativada' if novo_status else 'desativada'
+        return jsonify({
+            'sucesso': True,
+            'mensagem': f'Vaga {status_texto} com sucesso!',
+            'ativa': novo_status
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+    

@@ -174,3 +174,170 @@ def editar_usuario(id):
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
 
+# ==================== FUNÇÃO EXCLUIR ====================
+def excluir_usuario(id):
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        # Verificar se o usuário existe
+        cur.execute("SELECT id FROM usuario WHERE id = %s AND excluido = false", (id,))
+        if not cur.fetchone():
+            return jsonify({'erro': 'Usuário não encontrado'}), 404
+        
+        # Exclusão lógica (marcar como excluído)
+        cur.execute("""
+            UPDATE usuario 
+            SET excluido = true, data_alteracao = now() 
+            WHERE id = %s
+        """, (id,))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        return jsonify({
+            'sucesso': True,
+            'mensagem': 'Usuário excluído com sucesso!'
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+    
+# ==================== FUNÇÃO ATIVAR/DESATIVAR ====================
+def alternar_status_usuario(id):
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        # Verificar se o usuário existe e não está excluído
+        cur.execute("SELECT id, ativo FROM usuario WHERE id = %s AND excluido = false", (id,))
+        usuario = cur.fetchone()
+        if not usuario:
+            return jsonify({'erro': 'Usuário não encontrado'}), 404
+        
+        # Alternar status
+        novo_status = not usuario[1]
+        cur.execute("""
+            UPDATE usuario 
+            SET ativo = %s, data_alteracao = now() 
+            WHERE id = %s
+        """, (novo_status, id))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        status_texto = 'ativado' if novo_status else 'desativado'
+        return jsonify({
+            'sucesso': True,
+            'mensagem': f'Usuário {status_texto} com sucesso!',
+            'ativo': novo_status
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+    
+# ==================== FUNÇÃO ATIVAR/DESATIVAR ====================
+def alternar_status_usuario(id):
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        # Verificar se o usuário existe e não está excluído
+        cur.execute("SELECT id, ativo FROM usuario WHERE id = %s AND excluido = false", (id,))
+        usuario = cur.fetchone()
+        if not usuario:
+            return jsonify({'erro': 'Usuário não encontrado'}), 404
+        
+        # Alternar status
+        novo_status = not usuario[1]
+        cur.execute("""
+            UPDATE usuario 
+            SET ativo = %s, data_alteracao = now() 
+            WHERE id = %s
+        """, (novo_status, id))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        status_texto = 'ativado' if novo_status else 'desativado'
+        return jsonify({
+            'sucesso': True,
+            'mensagem': f'Usuário {status_texto} com sucesso!',
+            'ativo': novo_status
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+    
+import jwt
+from datetime import datetime, timedelta
+import os
+
+# ==================== FUNÇÃO LOGIN ====================
+def login():
+    try:
+        dados = request.get_json()
+        email = dados.get('email')
+        senha = dados.get('senha')
+        
+        if not email or not senha:
+            return jsonify({'erro': 'Email e senha são obrigatórios'}), 400
+        
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        # Buscar usuário pelo email
+        cur.execute("""
+            SELECT id, email, senha, perfil, ativo, excluido
+            FROM usuario 
+            WHERE email = %s
+        """, (email,))
+        
+        usuario = cur.fetchone()
+        cur.close()
+        conn.close()
+        
+        if not usuario:
+            return jsonify({'erro': 'Email ou senha inválidos'}), 401
+        
+        # Verificar se está excluído
+        if usuario[5]:  # excluido
+            return jsonify({'erro': 'Usuário não encontrado'}), 401
+        
+        # Verificar se está ativo
+        if not usuario[4]:  # ativo
+            return jsonify({'erro': 'Usuário desativado. Contate o administrador.'}), 401
+        
+        # Verificar senha
+        senha_hash = usuario[2]
+        if not bcrypt.checkpw(senha.encode('utf-8'), senha_hash.encode('utf-8')):
+            return jsonify({'erro': 'Email ou senha inválidos'}), 401
+        
+        # Gerar token JWT
+        payload = {
+            'id': usuario[0],
+            'email': usuario[1],
+            'perfil': usuario[3],
+            'exp': datetime.utcnow() + timedelta(hours=24)  # Token expira em 24h
+        }
+        
+        token = jwt.encode(payload, os.getenv('SECRET_KEY', 'chave_secreta'), algorithm='HS256')
+        
+        return jsonify({
+            'sucesso': True,
+            'mensagem': 'Login realizado com sucesso!',
+            'token': token,
+            'usuario': {
+                'id': usuario[0],
+                'email': usuario[1],
+                'perfil': usuario[3],
+                'ativo': usuario[4]
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+    

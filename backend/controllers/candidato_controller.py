@@ -201,3 +201,67 @@ def editar_candidato(id):
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
 
+# ==================== FUNÇÃO EXCLUIR ====================
+def excluir_candidato(id):
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        # Verificar se o candidato existe e não está excluído
+        cur.execute("SELECT id FROM candidato WHERE id = %s AND excluido = false", (id,))
+        if not cur.fetchone():
+            return jsonify({'erro': 'Candidato não encontrado'}), 404
+        
+        # Exclusão lógica (marcar como excluído)
+        cur.execute("""
+            UPDATE candidato 
+            SET excluido = true, data_alteracao = now() 
+            WHERE id = %s
+        """, (id,))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        return jsonify({
+            'sucesso': True,
+            'mensagem': 'Candidato excluído com sucesso!'
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+    
+# ==================== FUNÇÃO ATIVAR/DESATIVAR ====================
+def alternar_status_candidato(id):
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        # Verificar se o candidato existe e não está excluído
+        cur.execute("SELECT id, ativo FROM candidato WHERE id = %s AND excluido = false", (id,))
+        candidato = cur.fetchone()
+        if not candidato:
+            return jsonify({'erro': 'Candidato não encontrado'}), 404
+        
+        # Alternar status
+        novo_status = not candidato[1]
+        cur.execute("""
+            UPDATE candidato 
+            SET ativo = %s, data_alteracao = now() 
+            WHERE id = %s
+        """, (novo_status, id))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        status_texto = 'ativado' if novo_status else 'desativado'
+        return jsonify({
+            'sucesso': True,
+            'mensagem': f'Candidato {status_texto} com sucesso!',
+            'ativo': novo_status
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+    

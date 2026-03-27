@@ -48,19 +48,6 @@ def cadastrar_cliente():
         if not cliente_data:
             return jsonify({'erro': 'Erro ao criar cliente'}), 500
         
-        # Registrar no log
-        try:
-            from controllers.log_controller import registrar_log
-            registrar_log(
-                entidade='cliente',
-                entidade_id=cliente_data[0],
-                tipo_operacao='insercao',
-                usuario_id=usuario_id,
-                detalhes={'cnpj': cnpj_limpo}
-            )
-        except:
-            pass  # Log não deve interromper o cadastro
-        
         cliente = {
             'id': cliente_data[0],
             'cnpj': cliente_data[1],
@@ -198,6 +185,70 @@ def editar_cliente(id):
         return jsonify({
             'sucesso': True,
             'mensagem': 'Cliente atualizado com sucesso!'
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+    
+# ==================== FUNÇÃO EXCLUIR ====================
+def excluir_cliente(id):
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        # Verificar se o cliente existe e não está excluído
+        cur.execute("SELECT id FROM cliente WHERE id = %s AND excluido = false", (id,))
+        if not cur.fetchone():
+            return jsonify({'erro': 'Cliente não encontrado'}), 404
+        
+        # Exclusão lógica (marcar como excluído)
+        cur.execute("""
+            UPDATE cliente 
+            SET excluido = true, data_alteracao = now() 
+            WHERE id = %s
+        """, (id,))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        return jsonify({
+            'sucesso': True,
+            'mensagem': 'Cliente excluído com sucesso!'
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+    
+# ==================== FUNÇÃO ATIVAR/DESATIVAR ====================
+def alternar_status_cliente(id):
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        # Verificar se o cliente existe e não está excluído
+        cur.execute("SELECT id, ativo FROM cliente WHERE id = %s AND excluido = false", (id,))
+        cliente = cur.fetchone()
+        if not cliente:
+            return jsonify({'erro': 'Cliente não encontrado'}), 404
+        
+        # Alternar status
+        novo_status = not cliente[1]
+        cur.execute("""
+            UPDATE cliente 
+            SET ativo = %s, data_alteracao = now() 
+            WHERE id = %s
+        """, (novo_status, id))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        status_texto = 'ativado' if novo_status else 'desativado'
+        return jsonify({
+            'sucesso': True,
+            'mensagem': f'Cliente {status_texto} com sucesso!',
+            'ativo': novo_status
         }), 200
         
     except Exception as e:
