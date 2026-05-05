@@ -9,17 +9,33 @@
   color: #333;
 }
 
-.btn-novo {
-  display: inline-block;
+/* Container para botões lado a lado */
+.botoes-container {
+  display: flex;
+  gap: 10px;
   margin-bottom: 20px;
+  align-items: center;
+}
+
+/* Estilo padrão para ambos os botões - garantir inline-block */
+.btn-novo,
+button.btn-novo {
+  display: inline-block;
+  width: auto;
   padding: 10px 20px;
   background-color: #28a745;
   color: white;
   text-decoration: none;
   border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  text-align: center;
+  line-height: normal;
 }
 
-.btn-novo:hover {
+.btn-novo:hover,
+button.btn-novo:hover {
   background-color: #218838;
 }
 

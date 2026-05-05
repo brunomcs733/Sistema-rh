@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import './Listar.css';
 
@@ -7,6 +7,7 @@ function ListarCandidatos() {
   const [candidatos, setCandidatos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     carregarCandidatos();
@@ -41,14 +42,19 @@ function ListarCandidatos() {
 
   return (
     <div className="listar-container">
+      <div className="botoes-container">
+        <button onClick={() => navigate('/dashboard-rh')} className="btn-novo">
+          ⬅️ Voltar
+        </button>
+        <Link to="/cadastro-candidato" className="btn-novo">
+          + Novo Candidato
+        </Link>
+      </div>
+
       <h1>Lista de Candidatos</h1>
       
       {erro && <div className="erro">{erro}</div>}
       
-      <Link to="/cadastro-candidato" className="btn-novo">
-        + Novo Candidato
-      </Link>
-
       <table className="tabela">
         <thead>
           <tr>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import './Listar.css';
 
@@ -7,6 +7,7 @@ function ListarUsuarios() {
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     carregarUsuarios();
@@ -40,14 +41,19 @@ function ListarUsuarios() {
   if (loading) return <div className="loading">Carregando...</div>;
 
   return (
-    <div className="listar-container">
-      <h1>Lista de Usuários</h1>
-      
-      {erro && <div className="erro">{erro}</div>}
-      
+ <div className="listar-container">
+    <div className="botoes-container">
+      <button onClick={() => navigate('/dashboard-rh')} className="btn-novo">
+        ⬅️ Voltar
+      </button>
       <Link to="/cadastro" className="btn-novo">
         + Novo Usuário
       </Link>
+    </div>
+
+    <h1>Lista de Usuários</h1>
+    
+    {erro && <div className="erro">{erro}</div>}
 
       <table className="tabela">
         <thead>

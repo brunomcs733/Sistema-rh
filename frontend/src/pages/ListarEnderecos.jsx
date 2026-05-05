@@ -94,14 +94,19 @@ function ListarEnderecos() {
   if (loading) return <div className="loading">Carregando...</div>;
 
   return (
-    <div className="listar-container">
-      <h1>Solicitações de Alteração de Endereço</h1>
-      
-      {erro && <div className="erro">{erro}</div>}
-      
+  <div className="listar-container">
+    <div className="botoes-container">
+      <button onClick={() => navigate('/dashboard-rh')} className="btn-novo">
+        ⬅️ Voltar
+      </button>
       <Link to="/cadastro-endereco" className="btn-novo">
         + Nova Solicitação
       </Link>
+    </div>
+
+    <h1>Solicitações de Alteração de Endereço</h1>
+    
+    {erro && <div className="erro">{erro}</div>}
 
       {enderecos.length === 0 ? (
         <div className="sem-registros">Nenhuma solicitação encontrada.</div>
